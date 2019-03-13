@@ -1,54 +1,42 @@
-import {Application, ApplicationConfig} from '@loopback/core';
-import {HttpServer} from '@loopback/http-server';
-import * as express from 'express';
+import {BootMixin} from '@loopback/boot';
+import {ApplicationConfig} from '@loopback/core';
+import {
+  RestExplorerBindings,
+  RestExplorerComponent,
+} from '@loopback/rest-explorer';
+import {RepositoryMixin} from '@loopback/repository';
+import {RestApplication} from '@loopback/rest';
+import {ServiceMixin} from '@loopback/service-proxy';
 import * as path from 'path';
-import {WebSocketController} from './controllers';
-import {WebSocketServer} from './websocket.server';
+import {MySequence} from './sequence';
 
-// tslint:disable:no-any
-
-export class WebSocketDemoApplication extends Application {
-  readonly httpServer: HttpServer;
-  readonly wsServer: WebSocketServer;
-
+export class DrxApplication extends BootMixin(
+  ServiceMixin(RepositoryMixin(RestApplication)),
+) {
   constructor(options: ApplicationConfig = {}) {
     super(options);
 
-    /**
-     * Create an Express app to serve the home page
-     */
-    const expressApp = express();
-    const root = path.resolve(__dirname, '../../public');
-    expressApp.use('/', express.static(root));
+    // Set up the custom sequence
+    this.sequence(MySequence);
 
-    // Create an http server backed by the Express app
-    this.httpServer = new HttpServer(expressApp, options.websocket);
+    // Set up default home page
+    this.static('/', path.join(__dirname, '../public'));
 
-    // Create ws server from the http server
-    const wsServer = new WebSocketServer(this.httpServer);
-    this.bind('servers.websocket.server1').to(wsServer);
-    wsServer.use((socket, next) => {
-      console.log('Global middleware - socket:', socket.id);
-      next();
+    // Customize @loopback/rest-explorer configuration here
+    this.bind(RestExplorerBindings.CONFIG).to({
+      path: '/explorer',
     });
-    // Add a route
-    const ns = wsServer.route(WebSocketController, /^\/chats\/\d+$/);
-    ns.use((socket, next) => {
-      console.log(
-        'Middleware for namespace %s - socket: %s',
-        socket.nsp.name,
-        socket.id,
-      );
-      next();
-    });
-    this.wsServer = wsServer;
-  }
+    this.component(RestExplorerComponent);
 
-  start() {
-    return this.wsServer.start();
-  }
-
-  stop() {
-    return this.wsServer.stop();
+    this.projectRoot = __dirname;
+    // Customize @loopback/boot Booter Conventions here
+    this.bootOptions = {
+      controllers: {
+        // Customize ControllerBooter Conventions here
+        dirs: ['controllers'],
+        extensions: ['.controller.js'],
+        nested: true,
+      },
+    };
   }
 }

@@ -1,16 +1,16 @@
-import {WebSocketDemoApplication} from './application';
+import {DrxApplication} from './application';
 import {ApplicationConfig} from '@loopback/core';
 
-export {WebSocketDemoApplication};
-export * from './websocket.server';
-export * from './decorators/websocket.decorator';
-export * from './websocket-controller-factory';
+export {DrxApplication};
 
 export async function main(options: ApplicationConfig = {}) {
-  const app = new WebSocketDemoApplication(options);
+  const app = new DrxApplication(options);
+  await app.boot();
   await app.start();
 
-  console.log('listening on %s', app.httpServer.url);
+  const url = app.restServer.url;
+  console.log(`Server is running at ${url}`);
+  console.log(`Try ${url}/ping`);
 
   return app;
 }
