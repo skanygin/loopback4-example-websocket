@@ -28,7 +28,7 @@ export class WebSocketDemoApplication extends Application {
     const wsServer = new WebSocketServer(this.httpServer);
     this.bind('servers.websocket.server1').to(wsServer);
     wsServer.use((socket, next) => {
-      console.log('Global middleware - socket:', socket.id);
+      console.log('Global middleware - socket:', socket.id, socket);
       next();
     });
     // Add a route
